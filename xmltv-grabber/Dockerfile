@@ -27,16 +27,19 @@ RUN apk add --no-cache \
     musl-dev \
     perl-dev
 
-# Install XMLTV and ensure it completes successfully
+# Install XMLTV to standard Perl location
 WORKDIR /tmp
 RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
     tar xzf v1.2.1.tar.gz && \
     cd xmltv-1.2.1 && \
-    perl Makefile.PL PREFIX=/usr --yes && \
+    perl Makefile.PL --yes && \
     make && \
     make install && \
     cd / && \
     rm -rf /tmp/*
+
+# Set PERL5LIB environment variable permanently
+ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl
 
 # Verify tv_grab_zz_sdjson is installed and works
 RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
