@@ -1,46 +1,61 @@
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_it_dvb/sky_it.themes
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_it_dvb/sky_it.dict
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_eu_epgdata/channel_ids
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_huro/catmap.sk
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_huro/catmap.ro
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_huro/catmap.cz
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_huro/catmap.hu
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_huro/jobmap
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_it/channel_ids
-#8 9.947 Installing /usr/local/share/xmltv/tv_grab_uk_tvguide/tv_grab_uk_tvguide.map.conf
-#8 DONE 11.4s
+ARG BUILD_FROM
+FROM $BUILD_FROM
 
-#9 [5/8] RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
-#9 1.207 Can't locate XML/LibXML.pm in @INC (you may need to install the XML::LibXML module) (@INC entries checked: /usr/local/lib/perl5/site_perl /usr/local/share/perl5/site_perl /usr/local/lib/perl5/site_perl /usr/local/share/perl5/site_perl /usr/lib/perl5/vendor_perl /usr/share/perl5/vendor_perl /usr/lib/perl5/core_perl /usr/share/perl5/core_perl) at /usr/local/share/perl5/site_perl/XMLTV/Configure.pm line 22.
-#9 1.207 BEGIN failed--compilation aborted at /usr/local/share/perl5/site_perl/XMLTV/Configure.pm line 22.
-#9 1.207 Compilation failed in require at /usr/local/share/perl5/site_perl/XMLTV/Options.pm line 37.
-#9 1.207 BEGIN failed--compilation aborted at /usr/local/share/perl5/site_perl/XMLTV/Options.pm line 37.
-#9 1.207 Compilation failed in require at /usr/local/bin/tv_grab_zz_sdjson line 51.
-#9 1.207 BEGIN failed--compilation aborted at /usr/local/bin/tv_grab_zz_sdjson line 51.
-#9 1.211 ERROR: tv_grab_zz_sdjson not found!
-#9 ERROR: process "/bin/ash -o pipefail -c tv_grab_zz_sdjson --version || (echo \"ERROR: tv_grab_zz_sdjson not found!\" && exit 1)" did not complete successfully: exit code: 1
-------
- > [5/8] RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1):
-1.207 Can't locate XML/LibXML.pm in @INC (you may need to install the XML::LibXML module) (@INC entries checked: /usr/local/lib/perl5/site_perl /usr/local/share/perl5/site_perl /usr/local/lib/perl5/site_perl /usr/local/share/perl5/site_perl /usr/lib/perl5/vendor_perl /usr/share/perl5/vendor_perl /usr/lib/perl5/core_perl /usr/share/perl5/core_perl) at /usr/local/share/perl5/site_perl/XMLTV/Configure.pm line 22.
-1.207 BEGIN failed--compilation aborted at /usr/local/share/perl5/site_perl/XMLTV/Configure.pm line 22.
-1.207 Compilation failed in require at /usr/local/share/perl5/site_perl/XMLTV/Options.pm line 37.
-1.207 BEGIN failed--compilation aborted at /usr/local/share/perl5/site_perl/XMLTV/Options.pm line 37.
-1.207 Compilation failed in require at /usr/local/bin/tv_grab_zz_sdjson line 51.
-1.207 BEGIN failed--compilation aborted at /usr/local/bin/tv_grab_zz_sdjson line 51.
-1.211 ERROR: tv_grab_zz_sdjson not found!
-------
+# Install base dependencies including cpanm
+RUN apk add --no-cache \
+    bash \
+    perl \
+    perl-app-cpanminus \
+    perl-json \
+    perl-libwww \
+    perl-lwp-protocol-https \
+    perl-http-cookies \
+    perl-xml-parser \
+    perl-xml-twig \
+    perl-xml-writer \
+    perl-date-manip \
+    perl-digest-sha1 \
+    perl-file-slurp \
+    perl-datetime \
+    perl-datetime-format-strptime \
+    perl-archive-zip \
+    ca-certificates \
+    wget \
+    tar \
+    gzip \
+    make \
+    gcc \
+    musl-dev \
+    perl-dev \
+    libxml2-dev \
+    zlib-dev
 
- 1 warning found (use docker --debug to expand):
- - InvalidDefaultArgInFrom: Default value for ARG $BUILD_FROM results in empty or invalid base image name (line 2)
-Dockerfile:45
---------------------
-  43 |
-  44 |     # Verify tv_grab_zz_sdjson is installed and works
-  45 | >>> RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
-  46 |
-  47 |     # Create data directory
---------------------
-ERROR: failed to build: failed to solve: process "/bin/ash -o pipefail -c tv_grab_zz_sdjson --version || (echo \"ERROR: tv_grab_zz_sdjson not found!\" && exit 1)" did not complete successfully: exit code: 1
+# Install XML::LibXML via CPAN since Alpine package may not exist
+RUN cpanm --notest XML::LibXML XML::TreePP
 
-2025-12-07 13:47:51.809 INFO (MainThread) [supervisor.api.middleware.security] /supervisor/logs access from core_ssh
-[core-ssh /]$
+# Install XMLTV to standard Perl location
+WORKDIR /tmp
+RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
+    tar xzf v1.2.1.tar.gz && \
+    cd xmltv-1.2.1 && \
+    perl Makefile.PL --yes && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/*
+
+# Set PERL5LIB environment variable permanently
+ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl
+
+# Verify tv_grab_zz_sdjson is installed and works
+RUN tv_grab_zz_sdjson --version
+
+# Create data directory
+RUN mkdir -p /share/xmltv
+
+# Copy rootfs
+COPY rootfs /
+
+# Ensure scripts are executable
+RUN chmod +x /etc/services.d/xmltv-grabber/run && \
+    chmod +x /etc/services.d/xmltv-grabber/finish
