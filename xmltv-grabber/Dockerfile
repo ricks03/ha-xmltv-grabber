@@ -4,6 +4,7 @@ FROM $BUILD_FROM
 # Install dependencies
 RUN apk add --no-cache \
     bash \
+    jq \
     perl \
     perl-json \
     perl-libwww \
@@ -21,7 +22,7 @@ RUN apk add --no-cache \
     tar \
     bzip2
 
-# Install XMLTV from GitHub (more reliable than SourceForge)
+# Install XMLTV from GitHub
 WORKDIR /tmp
 RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
     tar xzf v1.2.1.tar.gz && \

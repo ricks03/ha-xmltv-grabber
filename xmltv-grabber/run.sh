@@ -1,23 +1,25 @@
-#!/usr/bin/with-contenv bashio
+#!/bin/bash
+set -e
 
 XMLTV_CONFIG=/share/xmltv/sdjson.conf
 XMLTV_OUTPUT=/share/xmltv/tv_guide.xml
 XMLTV_DIR=/share/xmltv
+OPTIONS_FILE=/data/options.json
 
 # Create directory if it doesn't exist
 mkdir -p "$XMLTV_DIR"
 
-# Read options
-SD_USERNAME=$(bashio::config 'sd_username')
-SD_PASSWORD=$(bashio::config 'sd_password')
-UPDATE_HOUR=$(bashio::config 'update_hour')
-DAYS=$(bashio::config 'days')
+# Read options from JSON file
+SD_USERNAME=$(jq -r '.sd_username // empty' "$OPTIONS_FILE")
+SD_PASSWORD=$(jq -r '.sd_password // empty' "$OPTIONS_FILE")
+UPDATE_HOUR=$(jq -r '.update_hour // 3' "$OPTIONS_FILE")
+DAYS=$(jq -r '.days // 7' "$OPTIONS_FILE")
 
-bashio::log.info "Starting XMLTV Grabber"
+echo "[INFO] Starting XMLTV Grabber"
 
 # Function to configure tv_grab_zz_sdjson
 configure_grabber() {
-    bashio::log.info "Configuring Schedules Direct..."
+    echo "[INFO] Configuring Schedules Direct..."
     
     # Create config file
     cat > "$XMLTV_CONFIG" <<EOF
@@ -30,35 +32,40 @@ mode=lineup
 EOF
 
     # Add lineups from config
-    if bashio::config.has_value 'lineups'; then
-        for lineup in $(bashio::config 'lineups'); do
-            echo "lineup=$lineup" >> "$XMLTV_CONFIG"
+    LINEUPS=$(jq -r '.lineups[]? // empty' "$OPTIONS_FILE")
+    if [ -n "$LINEUPS" ]; then
+        echo "$LINEUPS" | while read -r lineup; do
+            if [ -n "$lineup" ]; then
+                echo "lineup=$lineup" >> "$XMLTV_CONFIG"
+            fi
         done
     fi
 
-    bashio::log.info "Configuration complete"
+    echo "[INFO] Configuration complete"
 }
 
 # Function to run the grabber
 run_grabber() {
-    bashio::log.info "Fetching TV listings for $DAYS days..."
+    echo "[INFO] Fetching TV listings for $DAYS days..."
     
-    if tv_grab_zz_sdjson --config-file "$XMLTV_CONFIG" --output "$XMLTV_OUTPUT" --days "$DAYS" 2>&1 | tee /tmp/grabber.log; then
-        bashio::log.info "TV listings updated successfully"
-        bashio::log.info "Output saved to: $XMLTV_OUTPUT"
+    if tv_grab_zz_sdjson --config-file "$XMLTV_CONFIG" --output "$XMLTV_OUTPUT" --days "$DAYS"; then
+        echo "[INFO] TV listings updated successfully"
+        echo "[INFO] Output saved to: $XMLTV_OUTPUT"
+        return 0
     else
-        bashio::log.error "Failed to fetch TV listings"
-        cat /tmp/grabber.log
+        echo "[ERROR] Failed to fetch TV listings"
         return 1
     fi
 }
 
+# Check if credentials are provided
+if [ -z "$SD_USERNAME" ] || [ -z "$SD_PASSWORD" ]; then
+    echo "[ERROR] Please configure username and password in add-on configuration"
+    exit 1
+fi
+
 # Configure on first run or if config doesn't exist
-if [ ! -f "$XMLTV_CONFIG" ] || [ -z "$SD_USERNAME" ] || [ -z "$SD_PASSWORD" ]; then
-    if [ -z "$SD_USERNAME" ] || [ -z "$SD_PASSWORD" ]; then
-        bashio::log.error "Please configure username and password in add-on configuration"
-        exit 1
-    fi
+if [ ! -f "$XMLTV_CONFIG" ]; then
     configure_grabber
 fi
 
@@ -66,7 +73,7 @@ fi
 run_grabber
 
 # Schedule daily updates
-bashio::log.info "Scheduling daily updates at ${UPDATE_HOUR}:00"
+echo "[INFO] Scheduling daily updates at ${UPDATE_HOUR}:00"
 
 while true; do
     current_hour=$(date +%H)
