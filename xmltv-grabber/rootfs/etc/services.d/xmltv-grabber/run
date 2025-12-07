@@ -30,7 +30,7 @@ configure_grabber() {
     # Remove old cache if it exists (corrupted cache causes issues)
     rm -f "${XMLTV_CACHE}"
     
-    # Create config file
+    # Create base config file
     cat > "${XMLTV_CONFIG}" <<EOF
 username=${SCHEDULESDIRECT_USERNAME}
 password=${SCHEDULESDIRECT_PASSWORD}
@@ -39,37 +39,46 @@ channel-id-format=default
 previously-shown-format=date
 mode=lineup
 include-channel-numbers=0
+auto-config=all
 EOF
 
     # Add lineups from config
     if bashio::config.has_value 'lineups'; then
         for lineup in $(bashio::config 'lineups'); do
+            bashio::log.info "Adding lineup: ${lineup}"
             echo "lineup=${lineup}" >> "${XMLTV_CONFIG}"
         done
     fi
 
-    bashio::log.info "Configuration created"
-    bashio::log.info "Running initial channel setup..."
+    bashio::log.info "Fetching channel list from Schedules Direct..."
     
-    # Run grabber in configure mode to download channel list
-    # Use --configure flag with auto-accept to get all channels
-    echo "yes" | tv_grab_zz_sdjson --configure --config-file "${XMLTV_CONFIG}" || true
+    # Use --configure mode but feed it "yes" responses for all channels
+    # The key is to use --config-file and let it update the config
+    yes | tv_grab_zz_sdjson --configure --config-file "${XMLTV_CONFIG}" 2>&1 | head -50
     
-    bashio::log.info "Configuration complete"
+    # Check if config now has channels
+    if grep -q "^channel=" "${XMLTV_CONFIG}"; then
+        CHANNEL_COUNT=$(grep -c "^channel=" "${XMLTV_CONFIG}")
+        bashio::log.info "Configuration complete - ${CHANNEL_COUNT} channels configured"
+    else
+        bashio::log.warning "No channels found in config after setup"
+        bashio::log.info "Config file contents:"
+        cat "${XMLTV_CONFIG}"
+    fi
 }
 
 # Function to run the grabber
 run_grabber() {
     bashio::log.info "Fetching TV listings for ${DAYS} days..."
     
-    # Add --quiet flag to reduce output noise
-    if tv_grab_zz_sdjson --config-file "${XMLTV_CONFIG}" --output "${XMLTV_OUTPUT}" --days "${DAYS}" --quiet; then
+    if tv_grab_zz_sdjson --config-file "${XMLTV_CONFIG}" --output "${XMLTV_OUTPUT}" --days "${DAYS}"; then
         bashio::log.info "TV listings updated successfully"
         
         # Count how many programmes were downloaded
         if [ -f "${XMLTV_OUTPUT}" ]; then
             PROG_COUNT=$(grep -c "<programme" "${XMLTV_OUTPUT}" || echo "0")
-            bashio::log.info "Downloaded ${PROG_COUNT} programme entries"
+            CHAN_COUNT=$(grep -c "<channel " "${XMLTV_OUTPUT}" || echo "0")
+            bashio::log.info "Downloaded ${PROG_COUNT} programmes for ${CHAN_COUNT} channels"
             bashio::log.info "Output saved to: ${XMLTV_OUTPUT}"
         fi
         return 0
@@ -91,19 +100,17 @@ if ! bashio::config.has_value 'lineups'; then
     bashio::exit.nok
 fi
 
-# Configure on first run or if config doesn't exist or if cache is corrupted
-if [ ! -f "${XMLTV_CONFIG}" ] || [ ! -f "${XMLTV_CACHE}" ]; then
-    configure_grabber
-fi
+# Always reconfigure to ensure channels are selected
+bashio::log.info "Setting up configuration..."
+configure_grabber
 
 # Run grabber immediately on startup
 run_grabber
 
-# If first run failed, try reconfiguring
+# If failed, show config for debugging
 if [ $? -ne 0 ]; then
-    bashio::log.warning "First run failed, attempting reconfiguration..."
-    configure_grabber
-    run_grabber
+    bashio::log.error "Grabber failed. Config file contents:"
+    cat "${XMLTV_CONFIG}"
 fi
 
 # Schedule daily updates
