@@ -17,26 +17,36 @@ RUN apk add --no-cache \
     perl-file-slurp \
     perl-datetime \
     perl-datetime-format-strptime \
+    perl-archive-zip \
+    ca-certificates \
     wget \
     tar \
-    bzip2
+    gzip \
+    make \
+    gcc \
+    musl-dev \
+    perl-dev
 
-# Install XMLTV from GitHub
+# Install XMLTV and ensure it completes successfully
 WORKDIR /tmp
 RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
     tar xzf v1.2.1.tar.gz && \
     cd xmltv-1.2.1 && \
-    echo "yes" | perl Makefile.PL PREFIX=/usr && \
-    make -j4 || true && \
-    make install || true && \
+    perl Makefile.PL PREFIX=/usr --yes && \
+    make && \
+    make install && \
     cd / && \
     rm -rf /tmp/*
 
-# Verify tv_grab_zz_sdjson is installed
-RUN which tv_grab_zz_sdjson || echo "Warning: tv_grab_zz_sdjson not found in PATH"
+# Verify tv_grab_zz_sdjson is installed and works
+RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
 
 # Create data directory
 RUN mkdir -p /share/xmltv
 
 # Copy rootfs
 COPY rootfs /
+
+# Ensure scripts are executable
+RUN chmod +x /etc/services.d/xmltv-grabber/run && \
+    chmod +x /etc/services.d/xmltv-grabber/finish

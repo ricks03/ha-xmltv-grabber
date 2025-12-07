@@ -1,6 +1,9 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
 
+# Ensure PATH includes where XMLTV was installed
+export PATH="/usr/bin:/usr/local/bin:$PATH"
+
 XMLTV_CONFIG=/share/xmltv/sdjson.conf
 XMLTV_OUTPUT=/share/xmltv/tv_guide.xml
 XMLTV_DIR=/share/xmltv
