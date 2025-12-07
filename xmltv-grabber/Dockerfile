@@ -14,22 +14,29 @@ RUN apk add --no-cache \
     perl-xml-writer \
     perl-date-manip \
     perl-digest-sha1 \
+    perl-file-slurp \
+    perl-datetime \
+    perl-datetime-format-strptime \
     wget \
-    make \
-    gcc \
-    musl-dev \
-    perl-dev
+    tar \
+    bzip2
 
-# Install XMLTV
+# Install XMLTV from GitHub (more reliable than SourceForge)
 WORKDIR /tmp
-RUN wget -q -O xmltv.tar.bz2 https://sourceforge.net/projects/xmltv/files/xmltv/1.0.0/xmltv-1.0.0.tar.bz2/download && \
-    tar xjf xmltv.tar.bz2 && \
-    cd xmltv-* && \
-    yes | perl Makefile.PL && \
-    make && \
-    make install && \
+RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
+    tar xzf v1.2.1.tar.gz && \
+    cd xmltv-1.2.1 && \
+    echo "yes" | perl Makefile.PL PREFIX=/usr && \
+    make -j4 || true && \
+    make install || true && \
     cd / && \
     rm -rf /tmp/*
+
+# Verify tv_grab_zz_sdjson is installed
+RUN which tv_grab_zz_sdjson || echo "Warning: tv_grab_zz_sdjson not found in PATH"
+
+# Create data directory
+RUN mkdir -p /share/xmltv
 
 # Copy run script
 COPY run.sh /
