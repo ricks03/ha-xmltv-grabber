@@ -10,8 +10,8 @@ OPTIONS_FILE=/data/options.json
 mkdir -p "$XMLTV_DIR"
 
 # Read options from JSON file
-SD_USERNAME=$(jq -r '.sd_username // empty' "$OPTIONS_FILE")
-SD_PASSWORD=$(jq -r '.sd_password // empty' "$OPTIONS_FILE")
+SCHEDULESDIRECT_USERNAME=$(jq -r '.schedulesdirect_username // empty' "$OPTIONS_FILE")
+SCHEDULESDIRECT_PASSWORD=$(jq -r '.schedulesdirect_password // empty' "$OPTIONS_FILE")
 UPDATE_HOUR=$(jq -r '.update_hour // 3' "$OPTIONS_FILE")
 DAYS=$(jq -r '.days // 7' "$OPTIONS_FILE")
 
@@ -23,8 +23,8 @@ configure_grabber() {
     
     # Create config file
     cat > "$XMLTV_CONFIG" <<EOF
-username=$SD_USERNAME
-password=$SD_PASSWORD
+username=$SCHEDULESDIRECT_USERNAME
+password=$SCHEDULESDIRECT_PASSWORD
 cache=/share/xmltv/sdjson.cache
 channel-id-format=default
 previously-shown-format=date
@@ -59,7 +59,7 @@ run_grabber() {
 }
 
 # Check if credentials are provided
-if [ -z "$SD_USERNAME" ] || [ -z "$SD_PASSWORD" ]; then
+if [ -z "$SCHEDULESDIRECT_USERNAME" ] || [ -z "$SCHEDULESDIRECT_PASSWORD" ]; then
     echo "[ERROR] Please configure username and password in add-on configuration"
     exit 1
 fi

@@ -18,8 +18,8 @@ Fetches TV listings from Schedules Direct using tv_grab_zz_sdjson.
 
 Go to the **Configuration** tab and set:
 ```yaml
-sd_username: your_schedules_direct_username
-sd_password: your_schedules_direct_password
+schedulesdirect_username: your_schedules_direct_username
+schedulesdierct_password: your_schedules_direct_password
 update_hour: 3
 days: 7
 lineups:
