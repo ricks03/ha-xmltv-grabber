@@ -1,0 +1,27 @@
+name: XMLTV Schedules Direct Grabber
+version: "1.0.0"
+slug: xmltv-grabber
+description: Grabs TV listings from Schedules Direct using tv_grab_zz_sdjson
+url: https://github.com/ricks03/ha-xmltv-grabber
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - i386
+startup: services
+boot: auto
+options:
+  sd_username: ""
+  sd_password: ""
+  update_hour: 3
+  days: 7
+  lineups: []
+schema:
+  sd_username: str
+  sd_password: password
+  update_hour: int(0,23)
+  days: int(1,14)
+  lineups:
+    - str?
+map:
+  - share:rw
