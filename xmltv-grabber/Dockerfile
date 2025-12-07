@@ -4,7 +4,6 @@ FROM $BUILD_FROM
 # Install dependencies
 RUN apk add --no-cache \
     bash \
-    jq \
     perl \
     perl-json \
     perl-libwww \
@@ -39,8 +38,5 @@ RUN which tv_grab_zz_sdjson || echo "Warning: tv_grab_zz_sdjson not found in PAT
 # Create data directory
 RUN mkdir -p /share/xmltv
 
-# Copy run script
-COPY run.sh /
-RUN chmod a+x /run.sh
-
-CMD ["/run.sh"]
+# Copy rootfs
+COPY rootfs /
