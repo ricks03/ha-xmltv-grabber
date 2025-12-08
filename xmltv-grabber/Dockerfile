@@ -1,10 +1,11 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Install dependencies
+# Install base dependencies
 RUN apk add --no-cache \
     bash \
     perl \
+    perl-app-cpanminus \
     perl-json \
     perl-libwww \
     perl-lwp-protocol-https \
@@ -25,21 +26,29 @@ RUN apk add --no-cache \
     make \
     gcc \
     musl-dev \
-    perl-dev
+    perl-dev \
+    libxml2-dev \
+    zlib-dev
 
-# Install XMLTV and ensure it completes successfully
+# Install XML::LibXML via CPAN
+RUN cpanm --notest XML::LibXML XML::TreePP
+
+# Install XMLTV 1.4.0 (latest release, Oct 2024) - UPDATED 2025-12-07
 WORKDIR /tmp
-RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
-    tar xzf v1.2.1.tar.gz && \
-    cd xmltv-1.2.1 && \
-    perl Makefile.PL PREFIX=/usr --yes && \
+RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.4.0.tar.gz && \
+    tar xzf v1.4.0.tar.gz && \
+    cd xmltv-1.4.0 && \
+    perl Makefile.PL --yes && \
     make && \
     make install && \
     cd / && \
     rm -rf /tmp/*
 
-# Verify tv_grab_zz_sdjson is installed and works
-RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
+# Set PERL5LIB environment variable permanently
+ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl
+
+# Verify tv_grab_zz_sdjson is installed and show version
+RUN tv_grab_zz_sdjson --version
 
 # Create data directory
 RUN mkdir -p /share/xmltv
