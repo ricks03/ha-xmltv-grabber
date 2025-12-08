@@ -1,11 +1,10 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Install base dependencies including cpanm
+# Install dependencies
 RUN apk add --no-cache \
     bash \
     perl \
-    perl-app-cpanminus \
     perl-json \
     perl-libwww \
     perl-lwp-protocol-https \
@@ -26,29 +25,21 @@ RUN apk add --no-cache \
     make \
     gcc \
     musl-dev \
-    perl-dev \
-    libxml2-dev \
-    zlib-dev
+    perl-dev
 
-# Install XML::LibXML via CPAN since Alpine package may not exist
-RUN cpanm --notest XML::LibXML XML::TreePP
-
-# Install XMLTV to standard Perl location
+# Install XMLTV and ensure it completes successfully
 WORKDIR /tmp
 RUN wget -q https://github.com/XMLTV/xmltv/archive/refs/tags/v1.2.1.tar.gz && \
     tar xzf v1.2.1.tar.gz && \
     cd xmltv-1.2.1 && \
-    perl Makefile.PL --yes && \
+    perl Makefile.PL PREFIX=/usr --yes && \
     make && \
     make install && \
     cd / && \
     rm -rf /tmp/*
 
-# Set PERL5LIB environment variable permanently
-ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl
-
 # Verify tv_grab_zz_sdjson is installed and works
-RUN tv_grab_zz_sdjson --version
+RUN tv_grab_zz_sdjson --version || (echo "ERROR: tv_grab_zz_sdjson not found!" && exit 1)
 
 # Create data directory
 RUN mkdir -p /share/xmltv
