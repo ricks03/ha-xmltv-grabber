@@ -1,5 +1,5 @@
 name: XMLTV Schedules Direct Grabber
-version: "1.0.9"
+version: "1.1.1"
 slug: xmltv-grabber
 description: Grabs TV listings from Schedules Direct using tv_grab_zz_sdjson
 url: https://github.com/ricks03/ha-xmltv-grabber
