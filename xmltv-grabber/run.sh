@@ -80,7 +80,7 @@ while true; do
     current_minute=$(date +%M)
     
     if [ "$current_hour" -eq "$UPDATE_HOUR" ] && [ "$current_minute" -eq 0 ]; then
-        run_grabber
+        run_grabber || echo "[WARN] Scheduled grab failed, will retry tomorrow"
         sleep 65
     else
         sleep 30
