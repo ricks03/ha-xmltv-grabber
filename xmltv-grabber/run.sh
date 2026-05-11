@@ -70,7 +70,7 @@ if [ ! -f "$XMLTV_CONFIG" ]; then
 fi
 
 # Run grabber immediately on startup
-run_grabber
+run_grabber || echo "[WARN] Initial grab failed, will retry at scheduled time"
 
 # Schedule daily updates
 echo "[INFO] Scheduling daily updates at ${UPDATE_HOUR}:00"
