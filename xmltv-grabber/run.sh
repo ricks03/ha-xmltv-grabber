@@ -65,9 +65,9 @@ if [ -z "$SCHEDULESDIRECT_USERNAME" ] || [ -z "$SCHEDULESDIRECT_PASSWORD" ]; the
 fi
 
 # Configure on first run or if config doesn't exist
-if [ ! -f "$XMLTV_CONFIG" ]; then
+#if [ ! -f "$XMLTV_CONFIG" ]; then
     configure_grabber
-fi
+#fi
 
 # Run grabber immediately on startup
 run_grabber || echo "[WARN] Initial grab failed, will retry at scheduled time"
