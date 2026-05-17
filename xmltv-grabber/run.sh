@@ -76,8 +76,8 @@ run_grabber || echo "[WARN] Initial grab failed, will retry at scheduled time"
 echo "[INFO] Scheduling daily updates at ${UPDATE_HOUR}:00"
 
 while true; do
-    current_hour=$(date +%H)
-    current_minute=$(date +%M)
+    current_hour=$((10#$(date +%H)))
+    current_minute=$((10#$(date +%M)))    
     
     if [ "$current_hour" -eq "$UPDATE_HOUR" ] && [ "$current_minute" -eq 0 ]; then
         run_grabber || echo "[WARN] Scheduled grab failed, will retry tomorrow"
